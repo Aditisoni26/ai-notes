@@ -1,51 +1,55 @@
-import { db } from "@/lib/db"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { db } from "@/lib/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
+// ✅ CREATE NOTE
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions)
-
-  // 🔥 ADD THIS DEBUG FIRST
-  console.log("SESSION:", session)
+  const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 })
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json()
+  const body = await req.json();
 
-  const note = await db.note.create({
-    data: {
-      title: body.title,
-      content: body.content,
-      tags: Array.isArray(body.tags) ? body.tags : [],
-      userId: session.user.id   // ✅ MUST NOT BE UNDEFINED
-    }
-  })
+  try {
+    const note = await db.note.create({
+      data: {
+        title: body.title,
+        content: body.content,
+        tags: Array.isArray(body.tags) ? body.tags : [],
+        userId: session.user.id, // 🔥 REQUIRED
+      },
+    });
 
-  return Response.json(note)
+    return Response.json(note);
+  } catch (err) {
+    console.error("Create error:", err);
+    return Response.json({ error: "Create failed" }, { status: 500 });
+  }
 }
-export async function GET() {
-  const session = await getServerSession()
 
-  if (!session?.user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 })
+// ✅ GET USER NOTES (FIXED)
+export async function GET() {
+  const session = await getServerSession(authOptions); // 🔥 FIXED
+
+  if (!session?.user?.id) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const notes = await db.note.findMany({
       where: {
-        userId: session.user.id
+        userId: session.user.id, // 🔥 USER FILTER
       },
       orderBy: {
-        createdAt: "desc"
-      }
-    })
+        createdAt: "desc",
+      },
+    });
 
-    return Response.json(notes)
+    return Response.json(notes);
   } catch (err) {
-    console.error("Fetch error:", err)
-    return Response.json({ error: "Fetch failed" }, { status: 500 })
+    console.error("Fetch error:", err);
+    return Response.json({ error: "Fetch failed" }, { status: 500 });
   }
 }
-
