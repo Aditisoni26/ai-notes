@@ -188,7 +188,7 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* ✅ USER PROFILE */}
+            {/*  USER PROFILE */}
             <div className="flex items-center gap-3">
               <ThemeToggle />
               <ProfileMenu />
