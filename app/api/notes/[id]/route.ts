@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-// ✅ UPDATE NOTE
+// UPDATE NOTE
 export async function PUT(
   req: Request,
   context: { params: Promise<{ id: string }> }
@@ -45,7 +45,7 @@ export async function PUT(
   }
 }
 
-// ✅ DELETE NOTE
+//  DELETE NOTE
 export async function DELETE(
   _: Request,
   context: { params: Promise<{ id: string }> }
