@@ -6,7 +6,6 @@ import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-
 // shadcn/ui
 import {
   Card,
@@ -42,7 +41,6 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
-
 
   const fetchNotes = useCallback(async () => {
     if (status !== "authenticated") return;
@@ -162,7 +160,7 @@ export default function Home() {
   };
 
   const filteredNotes = notes.filter((n) =>
-    n.title.toLowerCase().includes(search.toLowerCase())
+    n.title.toLowerCase().includes(search.toLowerCase()),
   );
 
   if (status === "loading") {
@@ -178,36 +176,30 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white text-black dark:bg-gradient-to-br dark:from-black dark:via-gray-900 dark:to-gray-800 dark:text-white">
       <div className="max-w-6xl mx-auto p-6">
-        
         {/* HEADER */}
         <header className="flex justify-between items-center mb-10">
-  <div>
-    <h1 className="text-4xl font-extrabold tracking-tight">
-      🧠 <span className="text-blue-500">AI</span> Notes
-    </h1>
-    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-      Your intelligent second brain.
-    </p>
-  </div>
+          <div>
+            <h1 className="text-4xl font-extrabold tracking-tight">
+              🧠 <span className="text-blue-500">AI</span> Notes
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+              Your intelligent second brain.
+            </p>
+          </div>
 
-  <div className="flex items-center gap-4">
-
-    {/* ✅ USER PROFILE */}
-   <div className="flex items-center gap-3">
-  <ThemeToggle />
-  <ProfileMenu />
-</div>
-   
-
-  </div>
-</header>
+          <div className="flex items-center gap-4">
+            {/* ✅ USER PROFILE */}
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <ProfileMenu />
+            </div>
+          </div>
+        </header>
         {/* EDITOR */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           <Card className="bg-white border border-gray-200 dark:bg-gray-900 dark:border-gray-700 hover:shadow-xl transition-all">
             <CardHeader>
-              <CardTitle>
-                {editingId ? "Edit Note" : "New Entry"}
-              </CardTitle>
+              <CardTitle>{editingId ? "Edit Note" : "New Entry"}</CardTitle>
             </CardHeader>
 
             <CardContent className="space-y-4">
@@ -238,32 +230,35 @@ export default function Home() {
             </CardContent>
 
             <CardFooter className="flex gap-2 flex-wrap">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={createNote}>
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={createNote}
+              >
                 {editingId ? "Update" : "Save"}
               </Button>
 
               <Button
-                variant="secondary"
-                className="bg-gray-100 dark:bg-gray-800"
+                disabled={loading}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
                 onClick={summarizeNote}
               >
-                Summarize
+                {loading ? "Summarizing..." : "Summarize"}
               </Button>
 
               <Button
-                variant="secondary"
-                className="bg-gray-100 dark:bg-gray-800"
+                disabled={loading}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
                 onClick={improveNote}
               >
-                Improve
+                {loading ? "Improving..." : "Improve"}
               </Button>
 
               <Button
-                variant="secondary"
-                className="bg-gray-100 dark:bg-gray-800"
+                disabled={loading}
+                className="bg-pink-600 hover:bg-pink-700 text-white"
                 onClick={generateTags}
               >
-                Auto-Tag
+                {loading ? "Generating..." : "Auto-Tag"}
               </Button>
             </CardFooter>
           </Card>
@@ -280,9 +275,7 @@ export default function Home() {
                   {summary}
                 </p>
               ) : (
-                <p className="text-gray-400">
-                  AI results will appear here
-                </p>
+                <p className="text-gray-400">AI results will appear here</p>
               )}
             </CardContent>
           </Card>
