@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 export default function Register() {
   const [username, setUsername] = useState("");
-  const [email, setEmail] = useState(""); // 🔥 NEW
+  const [email, setEmail] = useState(""); 
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -23,7 +23,7 @@ export default function Register() {
     try {
       await axios.post("/api/signup", {
         username,
-        email, // 🔥 SEND EMAIL
+        email, 
         password
       });
 
@@ -56,7 +56,7 @@ export default function Register() {
           onChange={(e) => setUsername(e.target.value)}
         />
 
-        {/* 🔥 EMAIL */}
+       
         <input
           type="email"
           className="w-full p-3 mb-3 rounded-lg bg-gray-900 border border-gray-700 outline-none"
