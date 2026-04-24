@@ -2,11 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
 
-// shadcn/ui
+// UI
 import {
   Card,
   CardHeader,
@@ -18,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+
 import ProfileMenu from "@/components/ProfileMenu";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -30,17 +30,21 @@ type Note = {
 };
 
 export default function Home() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
 
   const [notes, setNotes] = useState<Note[]>([]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [summary, setSummary] = useState("");
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
+
+  // ✅ FIXED: separate loading state
+  const [loadingType, setLoadingType] = useState<
+    "summary" | "improve" | "tags" | null
+  >(null);
 
   const fetchNotes = useCallback(async () => {
     if (status !== "authenticated") return;
@@ -62,12 +66,9 @@ export default function Home() {
     let isMounted = true;
 
     if (status === "authenticated") {
-      axios
-        .get("/api/notes")
-        .then((res) => {
-          if (isMounted) setNotes(res.data);
-        })
-        .catch(console.error);
+      axios.get("/api/notes").then((res) => {
+        if (isMounted) setNotes(res.data);
+      });
     }
 
     return () => {
@@ -75,6 +76,7 @@ export default function Home() {
     };
   }, [status]);
 
+  // CREATE / UPDATE
   const createNote = async () => {
     if (!title || !content) return;
 
@@ -108,9 +110,13 @@ export default function Home() {
     }
   };
 
+  // 🤖 AI FEATURES
+
   const summarizeNote = async () => {
     if (!content) return;
-    setLoading(true);
+
+    setLoadingType("summary");
+
     try {
       const res = await axios.post("/api/ai/summary", {
         text: content,
@@ -119,224 +125,221 @@ export default function Home() {
     } catch (err) {
       console.error("Summary failed:", err);
     } finally {
-      setLoading(false);
+      setLoadingType(null);
     }
   };
 
   const improveNote = async () => {
     if (!content) return;
-    setLoading(true);
+
+    setLoadingType("improve");
+
     try {
       const res = await axios.post("/api/ai/improve", {
         text: content,
       });
       setContent(res.data.result);
     } catch (err) {
-      console.error("Improvement failed:", err);
+      console.error("Improve failed:", err);
     } finally {
-      setLoading(false);
+      setLoadingType(null);
     }
   };
 
   const generateTags = async () => {
     if (!content) return;
-    setLoading(true);
+
+    setLoadingType("tags");
+
     try {
       const res = await axios.post("/api/ai/tags", {
         text: content,
       });
 
-      const parsedTags = res.data.result
+      const parsed = res.data.result
         .split(",")
         .map((t: string) => t.trim())
         .filter((t: string) => t.length > 0);
 
-      setTags(parsedTags);
+      setTags(parsed);
     } catch (err) {
-      console.error("Tag generation failed:", err);
+      console.error("Tag failed:", err);
     } finally {
-      setLoading(false);
+      setLoadingType(null);
     }
   };
 
   const filteredNotes = notes.filter((n) =>
-    n.title.toLowerCase().includes(search.toLowerCase()),
+    n.title.toLowerCase().includes(search.toLowerCase())
   );
 
   if (status === "loading") {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-black">
-        <p className="text-gray-500 dark:text-gray-400 animate-pulse">
-          Loading Workspace...
-        </p>
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="animate-pulse text-gray-500">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white text-black dark:bg-gradient-to-br dark:from-black dark:via-gray-900 dark:to-gray-800 dark:text-white">
+    <div className="min-h-screen bg-white text-black dark:bg-black dark:text-white">
       <div className="max-w-6xl mx-auto p-6">
+
         {/* HEADER */}
         <header className="flex justify-between items-center mb-10">
-          <div>
-            <h1 className="text-4xl font-extrabold tracking-tight">
-              🧠 <span className="text-blue-500">AI</span> Notes
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-              Your intelligent second brain.
-            </p>
-          </div>
+          <h1 className="text-3xl font-bold">AI Notes</h1>
 
-          <div className="flex items-center gap-4">
-            {/* ✅ USER PROFILE */}
-            <div className="flex items-center gap-3">
-              <ThemeToggle />
-              <ProfileMenu />
-            </div>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <ProfileMenu />
           </div>
         </header>
+
         {/* EDITOR */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <Card className="bg-white border border-gray-200 dark:bg-gray-900 dark:border-gray-700 hover:shadow-xl transition-all">
-            <CardHeader>
-              <CardTitle>{editingId ? "Edit Note" : "New Entry"}</CardTitle>
-            </CardHeader>
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>
+              {editingId ? "Edit Note" : "New Note"}
+            </CardTitle>
+          </CardHeader>
 
-            <CardContent className="space-y-4">
-              <Input
-                placeholder="Title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
+          <CardContent className="space-y-3">
+            <Input
+              placeholder="Title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
 
-              <Textarea
-                placeholder="Write your thoughts..."
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-              />
+            <Textarea
+              placeholder="Content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+            />
 
-              {tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {tags.map((tag, i) => (
-                    <Badge
-                      key={i}
-                      className="bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-                    >
-                      #{tag}
-                    </Badge>
-                  ))}
-                </div>
+            {loadingType === "tags" && (
+              <p className="text-pink-500 animate-pulse">
+                Generating tags...
+              </p>
+            )}
+
+            <div className="flex gap-2 flex-wrap">
+              {tags.map((t, i) => (
+                <Badge key={i}>#{t}</Badge>
+              ))}
+            </div>
+          </CardContent>
+
+          <CardFooter className="flex gap-2 flex-wrap">
+
+            {/* SAVE */}
+            <Button onClick={createNote}>
+              {editingId ? "Update" : "Save"}
+            </Button>
+
+            {/* SUMMARIZE */}
+            <Button
+              disabled={loadingType !== null}
+              className="bg-purple-600 text-white flex items-center gap-2"
+              onClick={summarizeNote}
+            >
+              {loadingType === "summary" && (
+                <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
               )}
-            </CardContent>
+              {loadingType === "summary"
+                ? "Summarizing..."
+                : "Summarize"}
+            </Button>
 
-            <CardFooter className="flex gap-2 flex-wrap">
-              <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                onClick={createNote}
-              >
-                {editingId ? "Update" : "Save"}
-              </Button>
-
-              <Button
-                disabled={loading}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
-                onClick={summarizeNote}
-              >
-                {loading ? "Summarizing..." : "Summarize"}
-              </Button>
-
-              <Button
-                disabled={loading}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                onClick={improveNote}
-              >
-                {loading ? "Improving..." : "Improve"}
-              </Button>
-
-              <Button
-                disabled={loading}
-                className="bg-pink-600 hover:bg-pink-700 text-white"
-                onClick={generateTags}
-              >
-                {loading ? "Generating..." : "Auto-Tag"}
-              </Button>
-            </CardFooter>
-          </Card>
-
-          {/* AI PANEL */}
-          <Card className="bg-white border border-gray-200 dark:bg-gray-900 dark:border-gray-700 hover:shadow-xl">
-            <CardHeader>
-              <CardTitle>✨ AI Insights</CardTitle>
-            </CardHeader>
-
-            <CardContent>
-              {summary ? (
-                <p className="italic text-gray-600 dark:text-gray-300">
-                  {summary}
-                </p>
-              ) : (
-                <p className="text-gray-400">AI results will appear here</p>
+            {/* IMPROVE */}
+            <Button
+              disabled={loadingType !== null}
+              className="bg-indigo-600 text-white flex items-center gap-2"
+              onClick={improveNote}
+            >
+              {loadingType === "improve" && (
+                <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
               )}
-            </CardContent>
-          </Card>
-        </div>
+              {loadingType === "improve"
+                ? "Improving..."
+                : "Improve"}
+            </Button>
+
+            {/* TAGS */}
+            <Button
+              disabled={loadingType !== null}
+              className="bg-pink-600 text-white flex items-center gap-2"
+              onClick={generateTags}
+            >
+              {loadingType === "tags" && (
+                <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+              )}
+              {loadingType === "tags"
+                ? "Generating..."
+                : "Auto-Tag"}
+            </Button>
+          </CardFooter>
+        </Card>
+
+        {/* AI PANEL */}
+        <Card className="mb-6">
+          <CardContent>
+            {loadingType === "summary" ? (
+              <p className="text-blue-500 animate-pulse">
+                Generating summary...
+              </p>
+            ) : summary ? (
+              <p className="italic">{summary}</p>
+            ) : (
+              <p className="text-gray-400">
+                AI results will appear here
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* SEARCH */}
         <Input
-          className="mb-6"
           placeholder="Search..."
+          className="mb-6"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
 
         {/* NOTES */}
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-3 gap-4">
           {filteredNotes.map((note) => (
-            <Card
-              key={note.id}
-              className="bg-white border border-gray-200 dark:bg-gray-900 dark:border-gray-700 hover:shadow-xl hover:-translate-y-1 transition-all"
-            >
+            <Card key={note.id}>
               <CardHeader>
                 <CardTitle>{note.title}</CardTitle>
               </CardHeader>
 
               <CardContent>
-                <p className="text-gray-600 dark:text-gray-400 line-clamp-4">
+                <p className="text-sm text-gray-400">
                   {note.content}
                 </p>
 
-                {/* TAGS */}
-                {note.tags && note.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {note.tags.map((tag, i) => (
-                      <Badge
-                        key={i}
-                        className="bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"
-                      >
-                        #{tag}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  {note.tags?.map((t, i) => (
+                    <Badge key={i}>#{t}</Badge>
+                  ))}
+                </div>
               </CardContent>
 
               <CardFooter className="flex justify-between">
                 <Button
-                  variant="ghost"
-                  className="text-blue-500"
+                  variant="link"
                   onClick={() => {
                     setTitle(note.title);
                     setContent(note.content);
-                    setEditingId(note.id);
                     setTags(note.tags || []);
+                    setEditingId(note.id);
                   }}
                 >
                   Edit
                 </Button>
 
                 <Button
-                  variant="ghost"
-                  className="text-red-500"
+                  variant="link"
                   onClick={() => deleteNote(note.id)}
                 >
                   Delete
@@ -345,6 +348,7 @@ export default function Home() {
             </Card>
           ))}
         </div>
+
       </div>
     </div>
   );
