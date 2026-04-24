@@ -41,7 +41,7 @@ export default function Home() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
 
-  // ✅ FIXED: separate loading state
+  // 🔥 loading type
   const [loadingType, setLoadingType] = useState<
     "summary" | "improve" | "tags" | null
   >(null);
@@ -110,7 +110,7 @@ export default function Home() {
     }
   };
 
-  // 🤖 AI FEATURES
+  // ================= AI =================
 
   const summarizeNote = async () => {
     if (!content) return;
@@ -121,9 +121,12 @@ export default function Home() {
       const res = await axios.post("/api/ai/summary", {
         text: content,
       });
+
+      await new Promise((r) => setTimeout(r, 800)); // 👈 force visible loading
+
       setSummary(res.data.result);
-    } catch (err) {
-      console.error("Summary failed:", err);
+    } catch {
+      alert("Summary failed");
     } finally {
       setLoadingType(null);
     }
@@ -138,9 +141,12 @@ export default function Home() {
       const res = await axios.post("/api/ai/improve", {
         text: content,
       });
+
+      await new Promise((r) => setTimeout(r, 800));
+
       setContent(res.data.result);
-    } catch (err) {
-      console.error("Improve failed:", err);
+    } catch {
+      alert("Improve failed");
     } finally {
       setLoadingType(null);
     }
@@ -156,14 +162,16 @@ export default function Home() {
         text: content,
       });
 
+      await new Promise((r) => setTimeout(r, 800));
+
       const parsed = res.data.result
         .split(",")
         .map((t: string) => t.trim())
         .filter((t: string) => t.length > 0);
 
       setTags(parsed);
-    } catch (err) {
-      console.error("Tag failed:", err);
+    } catch {
+      alert("Tag generation failed");
     } finally {
       setLoadingType(null);
     }
@@ -216,12 +224,6 @@ export default function Home() {
               onChange={(e) => setContent(e.target.value)}
             />
 
-            {loadingType === "tags" && (
-              <p className="text-pink-500 animate-pulse">
-                Generating tags...
-              </p>
-            )}
-
             <div className="flex gap-2 flex-wrap">
               {tags.map((t, i) => (
                 <Badge key={i}>#{t}</Badge>
@@ -231,56 +233,38 @@ export default function Home() {
 
           <CardFooter className="flex gap-2 flex-wrap">
 
-            {/* SAVE */}
             <Button onClick={createNote}>
               {editingId ? "Update" : "Save"}
             </Button>
 
-            {/* SUMMARIZE */}
             <Button
-              disabled={loadingType !== null}
-              className="bg-purple-600 text-white flex items-center gap-2"
               onClick={summarizeNote}
+              disabled={loadingType !== null}
+              className="bg-purple-600 text-white"
             >
-              {loadingType === "summary" && (
-                <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
-              )}
-              {loadingType === "summary"
-                ? "Summarizing..."
-                : "Summarize"}
+              {loadingType === "summary" ? "..." : "Summarize"}
             </Button>
 
-            {/* IMPROVE */}
             <Button
-              disabled={loadingType !== null}
-              className="bg-indigo-600 text-white flex items-center gap-2"
               onClick={improveNote}
+              disabled={loadingType !== null}
+              className="bg-indigo-600 text-white"
             >
-              {loadingType === "improve" && (
-                <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
-              )}
-              {loadingType === "improve"
-                ? "Improving..."
-                : "Improve"}
+              {loadingType === "improve" ? "..." : "Improve"}
             </Button>
 
-            {/* TAGS */}
             <Button
-              disabled={loadingType !== null}
-              className="bg-pink-600 text-white flex items-center gap-2"
               onClick={generateTags}
+              disabled={loadingType !== null}
+              className="bg-pink-600 text-white"
             >
-              {loadingType === "tags" && (
-                <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
-              )}
-              {loadingType === "tags"
-                ? "Generating..."
-                : "Auto-Tag"}
+              {loadingType === "tags" ? "..." : "Auto-Tag"}
             </Button>
+
           </CardFooter>
         </Card>
 
-        {/* AI PANEL */}
+        {/* SUMMARY */}
         <Card className="mb-6">
           <CardContent>
             {loadingType === "summary" ? (
