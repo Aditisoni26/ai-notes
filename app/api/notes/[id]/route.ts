@@ -2,37 +2,41 @@ import { db } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-interface Params {
-  params: { id: string };
-}
-
-// ✅ UPDATE NOTE (SECURE)
-export async function PUT(req: Request, { params }: Params) {
+// ✅ UPDATE NOTE
+export async function PUT(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = await context.params; // ✅ FIX
   const body = await req.json();
 
   try {
-    const note = await db.note.update({
+    // 🔥 CHECK OWNERSHIP FIRST
+    const existing = await db.note.findFirst({
       where: {
-        id, // must be unique
+        id,
+        userId: session.user.id,
       },
+    });
+
+    if (!existing) {
+      return Response.json({ error: "Not found" }, { status: 404 });
+    }
+
+    const note = await db.note.update({
+      where: { id },
       data: {
         title: body.title,
         content: body.content,
         tags: Array.isArray(body.tags) ? body.tags : [],
       },
     });
-
-    // 🔥 EXTRA SECURITY CHECK
-    if (note.userId !== session.user.id) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
 
     return Response.json(note);
   } catch (err) {
@@ -41,22 +45,28 @@ export async function PUT(req: Request, { params }: Params) {
   }
 }
 
-// ✅ DELETE NOTE (SECURE)
-export async function DELETE(_: Request, { params }: Params) {
+// ✅ DELETE NOTE
+export async function DELETE(
+  _: Request,
+  context: { params: Promise<{ id: string }> }
+) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = await context.params; // ✅ FIX
 
   try {
-    const note = await db.note.findUnique({
-      where: { id },
+    const existing = await db.note.findFirst({
+      where: {
+        id,
+        userId: session.user.id,
+      },
     });
 
-    if (!note || note.userId !== session.user.id) {
+    if (!existing) {
       return Response.json({ error: "Not found" }, { status: 404 });
     }
 
