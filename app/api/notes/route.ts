@@ -2,7 +2,6 @@ import { db } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-// ✅ CREATE NOTE
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
 
@@ -29,7 +28,7 @@ export async function POST(req: Request) {
   }
 }
 
-// ✅ GET USER NOTES (FIXED)
+
 export async function GET() {
   const session = await getServerSession(authOptions); // 🔥 FIXED
 
