@@ -5,12 +5,12 @@ export async function POST(req: Request) {
   try {
     const { username, email, password } = await req.json();
 
-    // 🔴 VALIDATION
+  
     if (!username || !email || !password) {
       return Response.json({ error: "Missing fields" }, { status: 400 });
     }
 
-    // 🔴 CHECK USERNAME
+
     const existingUser = await prisma.user.findUnique({
       where: { username }
     });
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       return Response.json({ error: "Username already exists" }, { status: 400 });
     }
 
-    // 🔴 CHECK EMAIL
+
     const existingEmail = await prisma.user.findUnique({
       where: { email }
     });
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     const user = await prisma.user.create({
       data: {
         username,
-        email, // ✅ REAL EMAIL NOW
+        email, 
         password: hashed
       }
     });
